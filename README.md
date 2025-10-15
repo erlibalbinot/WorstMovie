@@ -93,7 +93,7 @@ GET /movies/listmovies
 ```
 
 ```bash
-GET /movies
+GET /movies/winners
 //Retorna o produtor com maior intervalo entre dois prêmios consecutivos, e o que obteve dois
 //prêmios mais rápido.
 
