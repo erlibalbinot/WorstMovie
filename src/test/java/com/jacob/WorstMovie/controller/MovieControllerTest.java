@@ -68,16 +68,16 @@ public class MovieControllerTest {
 
     @Test
     void getMoviesWinnersTest() throws Exception {
-        mock.perform(MockMvcRequestBuilders.get("/movies"))
+        mock.perform(MockMvcRequestBuilders.get("/movies/winners"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].producer").value("Albert S. Ruddy"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].interval").value(2))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].previousWin").value(1982))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].followingWin").value(1984))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].producer").value("Jerry Weintraub"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].interval").value(9))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].producer").value("Joel Silver"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].interval").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].previousWin").value(1990))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.min[0].followingWin").value(1991))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].producer").value("Mike Lobell"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].interval").value(16))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].previousWin").value(1980))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].followingWin").value(1989));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.max[0].followingWin").value(1996));
     }
 
     @Test

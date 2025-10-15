@@ -138,7 +138,7 @@ public class MoviesController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    @GetMapping("")
+    @GetMapping("/winners")
     public ResponseEntity<WinnersList> getWinners() {
         try {
             return ResponseEntity.ok(moviesService.getWinners());

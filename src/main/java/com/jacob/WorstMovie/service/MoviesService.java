@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class MoviesService {
@@ -76,67 +77,68 @@ public class MoviesService {
     public WinnersList getWinners() {
         List<MovieListDTO> list = UtilMapper.toListDto(repository.findByWinner(1));
 
-        return getFastWinners(list);
+        Map<String, List<Integer>> producersYearsWin = getProducersAndYearsWin(list);
+
+        List<WinnersMaxMin> minMaxIntervalAndYears = getMinMaxIntervalAndYears(producersYearsWin);
+
+        int[] intervals = getMinAndMaxWinners(minMaxIntervalAndYears);
+
+        return UtilMapper.toWinnersList(minMaxIntervalAndYears, intervals[0], intervals[1]);
     }
 
-    private WinnersList getFastWinners(List<MovieListDTO> movies) {
-        Map<String, List<Integer>> mapProducers = movies.stream().collect(
-                Collectors.groupingBy(
-                        MovieListDTO::getProducers,
-                        Collectors.mapping(MovieListDTO::getYear, Collectors.toList())
+    private Map<String, List<Integer>> getProducersAndYearsWin(List<MovieListDTO> movies) {
+        return movies.stream()
+                .flatMap(movie -> Stream.of(
+                                        movie.getProducers()
+                                                .replaceAll("(?i)\\sand\\s", ",")
+                                                .split(",")
+                                )
+                                .map(String::trim)
+                                .filter(p -> !p.isEmpty())
+                                .map(producer -> Map.entry(producer, movie.getYear()))
                 )
-        );
-
-        List<WinnersMaxMin> winners = getIntervalsByProducers(mapProducers);
-
-        return UtilMapper.toWinnersList(winners, getMinInterval(winners), getMaxInterval(winners));
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                ));
     }
 
-    private List<WinnersMaxMin> getIntervalsByProducers(Map<String, List<Integer>> mapProducers) {
-        return mapProducers.entrySet().stream()
+    private List<WinnersMaxMin> getMinMaxIntervalAndYears(Map<String, List<Integer>> producersYearsWin) {
+        return producersYearsWin.entrySet().stream()
                 .filter(moreWins -> moreWins.getValue().size() > 1)
-                .map(movie -> {
-                            List<Integer> years = movie.getValue().stream().sorted().collect(Collectors.toList());
+                .map(e -> {
+                    var sortedYears = e.getValue().stream().sorted().toList();
 
-                            return calculateDiffs(movie.getKey(), years);
+                    int minDiff = Integer.MAX_VALUE;
+                    int maxDiff = 0;
+                    int yearMinFirst = -1, yearMinFinal = -1;
+                    int yearMaxFirst = -1, yearMaxFinal = -1;
+                    for (int i = 1; i < sortedYears.size(); i++) {
+                        int diff = sortedYears.get(i) - sortedYears.get(i - 1);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            yearMinFirst = sortedYears.get(i - 1);
+                            yearMinFinal = sortedYears.get(i);
                         }
-                ).collect(Collectors.toList());
+                        if (diff > maxDiff) {
+                            maxDiff = diff;
+                            yearMaxFirst = sortedYears.get(i - 1);
+                            yearMaxFinal = sortedYears.get(i);
+                        }
+                    }
+
+                    return new WinnersMaxMin(e.getKey(), minDiff, yearMinFirst, yearMinFinal, maxDiff, yearMaxFirst, yearMaxFinal);
+                })
+                .toList();
     }
 
-    private int getMinInterval(List<WinnersMaxMin> winners) {
-        return winners.stream()
-                .map(WinnersMaxMin::getIntervalMin)
-                .min(Integer::compareTo)
-                .orElse(Integer.MAX_VALUE);
-    }
-
-    private int getMaxInterval(List<WinnersMaxMin> winners) {
-        return winners.stream()
-                .map(WinnersMaxMin::getIntervalMax)
-                .max(Integer::compareTo)
-                .orElse(0);
-    }
-
-    private WinnersMaxMin calculateDiffs(String producer, List<Integer> years) {
-        int minDiff = Integer.MAX_VALUE;
-        int maxDiff = 0;
-        int yearMinFirst = -1, yearMinFinal = -1;
-        int yearMaxFirst = -1, yearMaxFinal = -1;
-
-        for (int i = 1; i < years.size(); i++) {
-            int diff = years.get(i) - years.get(i - 1);
-            if (diff < minDiff) {
-                minDiff = diff;
-                yearMinFirst = years.get(i - 1);
-                yearMinFinal = years.get(i);
-            }
-            if (diff > maxDiff) {
-                maxDiff = diff;
-                yearMaxFirst = years.get(i - 1);
-                yearMaxFinal = years.get(i);
-            }
+    private int[] getMinAndMaxWinners(List<WinnersMaxMin> winners) {
+        int min = Integer.MAX_VALUE;
+        int max = 0;
+        for (var w : winners) {
+            if (w.getIntervalMin() < min) min = w.getIntervalMin();
+            if (w.getIntervalMax() > max) max = w.getIntervalMax();
         }
-
-        return new WinnersMaxMin(producer, minDiff, yearMinFirst, yearMinFinal, maxDiff, yearMaxFirst, yearMaxFinal);
+        return new int[]{min, max};
     }
 }
